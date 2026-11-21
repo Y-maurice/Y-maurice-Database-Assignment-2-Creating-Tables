@@ -1,0 +1,37 @@
+# Visual Studio / .NET build output (in case you open dsa/ in a project)
+.vs/
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+
+# SQL Server local files: never commit database files or backups
+*.mdf
+*.ldf
+*.ndf
+*.bak
+*.trn
+
+# SSMS temporary / recovery files
+*.ssmssqlproj.user
+~$*
+*.tmp
+*.log
+
+# draw.io temporary/backup files
+.$*.bkp
+.$*.dtmp
+*.drawio.bkp
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# scratch folder for throw-away SQL (e.g. the error-demo UPDATEs)
+scratch/
