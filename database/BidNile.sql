@@ -349,3 +349,71 @@ GO
 ALTER TABLE Operations.Warehouse
     ADD CONSTRAINT CK_Warehouse_MaxItems CHECK (MaxItems > 0 AND MaxItems <= 30000);
 GO
+
+-- 3.7 Maximum commission is now 25 %.
+-- 3.7
+ALTER TABLE Catalog.Category DROP CONSTRAINT CK_Category_CommissionPct;
+GO
+-- 3.7
+ALTER TABLE Catalog.Category
+    ADD CONSTRAINT CK_Category_CommissionPct CHECK (CommissionPct BETWEEN 0 AND 25);
+GO
+
+-- 3.8 Auctions must be reviewed first: allow 'PendingReview' and make it the new default.
+-- 3.8
+ALTER TABLE Trade.Auction DROP CONSTRAINT CK_Auction_Status;
+GO
+-- 3.8
+ALTER TABLE Trade.Auction DROP CONSTRAINT DF_Auction_Status;
+GO
+-- 3.8
+ALTER TABLE Trade.Auction
+    ADD CONSTRAINT CK_Auction_Status CHECK (Status IN ('Draft', 'PendingReview', 'Live', 'Ended', 'Cancelled'));
+GO
+-- 3.8
+ALTER TABLE Trade.Auction
+    ADD CONSTRAINT DF_Auction_Status DEFAULT 'PendingReview' FOR Status;
+GO
+
+-- 3.9 Optional "Buy Now" price, always above the starting price.
+-- 3.9
+ALTER TABLE Trade.Auction ADD BuyNowPrice DECIMAL(12,2) NULL;
+GO
+-- 3.9  WITH CHECK (not NOCHECK): the table already has rows, and WITH CHECK validates them
+--      against the new rule (all existing BuyNowPrice are NULL, so they pass). The constraint then
+--      stays "trusted", which the optimizer can use. NOCHECK would skip the validation and leave the
+--      constraint untrusted - only acceptable when you knowingly keep bad legacy rows.
+-- 3.9
+ALTER TABLE Trade.Auction WITH CHECK
+    ADD CONSTRAINT CK_Auction_BuyNowPrice CHECK (BuyNowPrice IS NULL OR BuyNowPrice > StartPrice);
+GO
+
+-- 3.10 Duplicate accounts were found: the mobile number must be unique.
+-- 3.10
+ALTER TABLE Membership.Member
+    ADD CONSTRAINT UQ_Member_Mobile UNIQUE (Mobile);
+GO
+
+-- 3.11 We need WHEN a member was verified (optional), then drop the Yes/No column.
+-- 3.11
+ALTER TABLE Membership.Member ADD VerifiedAt DATETIME2(0) NULL;
+GO
+-- keep what we already know: verified members get their registration time as best approximation
+UPDATE Membership.Member SET VerifiedAt = RegisteredAt WHERE IsVerified = 1;
+GO
+-- First attempt fails: "The object 'DF_Member_IsVerified' is dependent on column 'IsVerified'".
+-- Cause: the DEFAULT constraint is attached to the column. Fix: drop the default first, then the column.
+-- 3.11
+ALTER TABLE Membership.Member DROP CONSTRAINT DF_Member_IsVerified;
+GO
+-- 3.11
+ALTER TABLE Membership.Member DROP COLUMN IsVerified;
+GO
+
+-- 3.12 Marketing now owns engagement data: new schema, then move the "followed auctions" table.
+-- 3.12
+CREATE SCHEMA Marketing;
+GO
+-- 3.12
+ALTER SCHEMA Marketing TRANSFER Trade.AuctionFollow;
+GO
