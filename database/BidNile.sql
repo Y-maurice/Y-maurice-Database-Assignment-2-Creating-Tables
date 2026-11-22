@@ -302,3 +302,50 @@ ALTER TABLE Trade.AuctionFollow
     ADD CONSTRAINT FK_AuctionFollow_Auction FOREIGN KEY (AuctionId) REFERENCES Trade.Auction (AuctionId);
 GO
 
+-- 3.2 App language: NOT NULL column in ONE statement; existing members get 'ar' from the DEFAULT.
+-- 3.2
+ALTER TABLE Membership.Member
+    ADD AppLanguage CHAR(2) NOT NULL
+        CONSTRAINT DF_Member_AppLanguage DEFAULT 'ar'
+        CONSTRAINT CK_Member_AppLanguage CHECK (AppLanguage IN ('ar', 'en'));
+GO
+
+-- 3.3 Featured items: NOT NULL Yes/No, default No (existing items become 0).
+-- 3.3
+ALTER TABLE Catalog.Item
+    ADD IsFeatured BIT NOT NULL
+        CONSTRAINT DF_Item_IsFeatured DEFAULT 0;
+GO
+
+-- 3.4 Naming review. Columns are renamed with sp_rename (not ALTER TABLE).
+-- 3.4
+EXEC sp_rename N'Trade.Bid.IpAddress', N'DeviceIp', N'COLUMN';
+GO
+-- 3.4  The CHECK on Capacity blocks the rename (Msg 15336), so: drop it, rename, re-create it under the new name.
+ALTER TABLE Operations.Warehouse DROP CONSTRAINT CK_Warehouse_Capacity;
+GO
+-- 3.4
+EXEC sp_rename N'Operations.Warehouse.Capacity', N'MaxItems', N'COLUMN';
+GO
+-- 3.4
+ALTER TABLE Operations.Warehouse ADD CONSTRAINT CK_Warehouse_MaxItems CHECK (MaxItems > 0);
+GO
+
+-- 3.5 Longer names. Re-state NOT NULL, otherwise ALTER COLUMN would make the column nullable.
+-- 3.5
+ALTER TABLE Membership.Member ALTER COLUMN FullName NVARCHAR(150) NOT NULL;
+GO
+
+-- 3.6 No warehouse holds more than 30,000 items -> SMALLINT (max 32,767) is the smallest type that fits.
+-- First attempt fails: "The object 'CK_Warehouse_MaxItems' is dependent on column 'MaxItems'".
+-- Cause: a CHECK depends on the column. Fix: drop it, change the type, re-create it (keeping "> 0").
+-- 3.6
+ALTER TABLE Operations.Warehouse DROP CONSTRAINT CK_Warehouse_MaxItems;
+GO
+-- 3.6
+ALTER TABLE Operations.Warehouse ALTER COLUMN MaxItems SMALLINT NOT NULL;
+GO
+-- 3.6
+ALTER TABLE Operations.Warehouse
+    ADD CONSTRAINT CK_Warehouse_MaxItems CHECK (MaxItems > 0 AND MaxItems <= 30000);
+GO
