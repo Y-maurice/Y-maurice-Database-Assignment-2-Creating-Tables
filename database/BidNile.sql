@@ -237,3 +237,68 @@ CREATE TABLE Trade.AuctionFollow                             -- M:N between Memb
 );
 GO
 
+
+/* =====================================================================
+   TASK 3 - ALTER  
+   ===================================================================== */
+
+-- 3.1 Connect everything. Only Item -> ItemPhoto cascades; all other FKs = NO ACTION.
+
+ALTER TABLE Operations.City
+    ADD CONSTRAINT FK_City_Country FOREIGN KEY (CountryCode) REFERENCES Operations.Country (CountryCode);
+
+ALTER TABLE Operations.Warehouse
+    ADD CONSTRAINT FK_Warehouse_City FOREIGN KEY (CityId) REFERENCES Operations.City (CityId);
+
+ALTER TABLE Operations.Employee
+    ADD CONSTRAINT FK_Employee_Member FOREIGN KEY (MemberId) REFERENCES Membership.Member (MemberId);
+
+ALTER TABLE Operations.Employee
+    ADD CONSTRAINT FK_Employee_Warehouse FOREIGN KEY (WarehouseId) REFERENCES Operations.Warehouse (WarehouseId);
+--(closes the circle Warehouse <-> Employee)
+ALTER TABLE Operations.Warehouse
+    ADD CONSTRAINT FK_Warehouse_Employee FOREIGN KEY (ManagerMemberId) REFERENCES Operations.Employee (MemberId);
+
+ALTER TABLE Membership.Member
+    ADD CONSTRAINT FK_Member_City FOREIGN KEY (CityId) REFERENCES Operations.City (CityId);
+--  (recursive: who invited whom)
+ALTER TABLE Membership.Member
+    ADD CONSTRAINT FK_Member_Member FOREIGN KEY (InvitedByMemberId) REFERENCES Membership.Member (MemberId);
+-- 3.1
+ALTER TABLE Membership.Wallet
+    ADD CONSTRAINT FK_Wallet_Member FOREIGN KEY (MemberId) REFERENCES Membership.Member (MemberId);
+-- (recursive: category tree)
+ALTER TABLE Catalog.Category
+    ADD CONSTRAINT FK_Category_Category FOREIGN KEY (ParentCategoryId) REFERENCES Catalog.Category (CategoryId);
+--  (seller)
+ALTER TABLE Catalog.Item
+    ADD CONSTRAINT FK_Item_Member FOREIGN KEY (SellerMemberId) REFERENCES Membership.Member (MemberId);
+
+ALTER TABLE Catalog.Item
+    ADD CONSTRAINT FK_Item_Category FOREIGN KEY (CategoryId) REFERENCES Catalog.Category (CategoryId);
+
+ALTER TABLE Catalog.Item
+    ADD CONSTRAINT FK_Item_Warehouse FOREIGN KEY (WarehouseId) REFERENCES Operations.Warehouse (WarehouseId);
+--(inspector)
+ALTER TABLE Catalog.Item
+    ADD CONSTRAINT FK_Item_Employee FOREIGN KEY (InspectorMemberId) REFERENCES Operations.Employee (MemberId);
+-- (deleting an item deletes its photos)
+ALTER TABLE Catalog.ItemPhoto
+    ADD CONSTRAINT FK_ItemPhoto_Item FOREIGN KEY (ItemId) REFERENCES Catalog.Item (ItemId) ON DELETE CASCADE;
+
+ALTER TABLE Trade.Auction
+    ADD CONSTRAINT FK_Auction_Item FOREIGN KEY (ItemId) REFERENCES Catalog.Item (ItemId);
+
+ALTER TABLE Trade.Bid
+    ADD CONSTRAINT FK_Bid_Auction FOREIGN KEY (AuctionId) REFERENCES Trade.Auction (AuctionId);
+
+ALTER TABLE Trade.Bid
+    ADD CONSTRAINT FK_Bid_Member FOREIGN KEY (MemberId) REFERENCES Membership.Member (MemberId);
+
+ALTER TABLE Trade.AuctionFollow
+    ADD CONSTRAINT FK_AuctionFollow_Member FOREIGN KEY (MemberId) REFERENCES Membership.Member (MemberId);
+
+ALTER TABLE Trade.AuctionFollow
+    ADD CONSTRAINT FK_AuctionFollow_Auction FOREIGN KEY (AuctionId) REFERENCES Trade.Auction (AuctionId);
+GO
+
