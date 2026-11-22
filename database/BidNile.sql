@@ -398,11 +398,10 @@ GO
 -- 3.11
 ALTER TABLE Membership.Member ADD VerifiedAt DATETIME2(0) NULL;
 GO
--- keep what we already know: verified members get their registration time as best approximation
 UPDATE Membership.Member SET VerifiedAt = RegisteredAt WHERE IsVerified = 1;
 GO
 -- First attempt fails: "The object 'DF_Member_IsVerified' is dependent on column 'IsVerified'".
--- Cause: the DEFAULT constraint is attached to the column. Fix: drop the default first, then the column.
+-- Cause: the DEFAULT constraint is attached to the column => Fix: drop the default first, then the column.
 -- 3.11
 ALTER TABLE Membership.Member DROP CONSTRAINT DF_Member_IsVerified;
 GO

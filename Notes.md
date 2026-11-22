@@ -1,4 +1,7 @@
 # NOTES - BidNile
+
+- Name : youssef Maurice
+- Group : Sunday & Wednesday
  
 ## 1. Four schemas and their tables
 - **Operations** - Country, City, Warehouse, Employee: where BidNile physically works and who works there.
@@ -25,6 +28,10 @@ Each schema is one business area, so a team could own a schema (Marketing took o
 ## 4. Why the circular relationship cannot be created inside CREATE TABLE
 Whichever table is created first would reference a table that does not exist yet (Employee needs Warehouse, Warehouse needs Employee). So both tables are created without that FK, and `FK_Warehouse_Employee` is added afterwards with ALTER TABLE (3.1). The manager column is also nullable, so a warehouse can exist before its manager.
 
+## 5. Order the tables were filled, and why
+Country -> City -> Member (inviter before the member they invited) -> Wallet -> Warehouse (manager empty) -> Employee -> set the warehouse managers -> Category (parent before child) -> Item -> ItemPhoto -> Auction -> Bid -> AuctionFollow.
+FKs are already on, so a row can only be inserted after the row it points to exists. The Warehouse/Employee circle is broken by loading warehouses without a manager first.
+
 ## 6. The errors in 3.6 and 3.11
 - **3.4 / 3.6 (`Capacity` -> `MaxItems`)**: renaming the column failed with
   *"Object 'Operations.Warehouse.Capacity' cannot be renamed because the object participates in enforced dependencies"* (Msg 15336).
@@ -32,3 +39,14 @@ Whichever table is created first would reference a table that does not exist yet
   *"The object 'CK_Warehouse_MaxItems' is dependent on column 'MaxItems'"* (Msg 5074 / 4922).
   Cause: the CHECK constraint (`> 0`) is attached to the column, so SQL Server blocks renaming or changing its type.
   Fix: drop the CHECK, do the rename / type change, then add the CHECK again (still `> 0`, and in 3.6 also `<= 30000`).
+- **3.11** `DROP COLUMN IsVerified` failed: *the object `DF_Member_IsVerified` is dependent on column `IsVerified`*. The DEFAULT constraint is attached to the column. Fix: drop the DEFAULT first, then the column.
+
+## 7. Hand trace of Task 5 with [1, 2, 3, 4]
+| i | nums[i] | prefix[i] (product left of i) | suffix[i] (product right of i) | answer[i] |
+|---|---|---|---|---|
+| 0 | 1 | 1 | 2*3*4 = 24 | 24 |
+| 1 | 2 | 1 | 3*4 = 12 | 12 |
+| 2 | 3 | 1*2 = 2 | 4 | 8 |
+| 3 | 4 | 1*2*3 = 6 | 1 | 6 |
+ 
+prefix = [1, 1, 2, 6], suffix = [24, 12, 4, 1], answer = [24, 12, 8, 6].
